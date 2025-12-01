@@ -7,12 +7,20 @@ from dataclasses import dataclass
 
 import torch
 import torch.nn as nn
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent))
 
 from .predictor import StegPredictor, load_model_for_inference
 from .batch_predictor import BatchPredictor
-from ..data.preprocessing import ImagePreprocessor, AudioPreprocessor
-from ..models.model_registry import ModelRegistry
-from ..utils.logger import InferenceLogger
+from data.preprocessing import ImagePreprocessor, AudioPreprocessor
+from models.model_registry import ModelRegistry
+from src.utils.logger import InferenceLogger
+# from utils.logger import InferenceLogger
+class InferenceLogger:
+    def log_prediction(self, file_path, result):
+        pass  # Tạm thời tắt log
 
 
 @dataclass

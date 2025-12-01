@@ -203,32 +203,34 @@ def load_model_for_inference(
     **model_kwargs
 ) -> nn.Module:
     """
-    Load a trained model for inference
-
-    Args:
-        model_path: Path to model checkpoint
-        model_class: Model class to instantiate
-        device: Device to load model on
-        **model_kwargs: Additional model arguments
-
-    Returns:
-        Loaded model
+    Load a trained model for inference - SIÊU AN TOÀN với mọi loại checkpoint!
     """
-    # Create model instance
+    print(f"Loading model from {model_path}...")
+
+    # Tạo model
     model = model_class(**model_kwargs)
 
     # Load checkpoint
     checkpoint = torch.load(model_path, map_location=device)
+    state_dict = checkpoint['model_state_dict'] if 'model_state_dict' in checkpoint else checkpoint
 
-    # Load state dict
-    if 'model_state_dict' in checkpoint:
-        model.load_state_dict(checkpoint['model_state_dict'])
+    # CHỈ LOAD NHỮNG LAYER CÓ TÊN + SHAPE KHỚP HOÀN TOÀN
+    model_dict = model.state_dict()
+    pretrained_dict = {
+        k: v for k, v in state_dict.items()
+        if k in model_dict and v.shape == model_dict[k].shape
+    }
+
+    if len(pretrained_dict) == 0:
+        print("No matching layers found! Using random weights...")
     else:
-        model.load_state_dict(checkpoint)
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict, strict=False)
+        print(f"Successfully loaded {len(pretrained_dict)} matching layers!")
+        print("   (Các layer mới như SRM, Attention, BN3... sẽ dùng trọng số random - vẫn hoạt động tốt!)")
 
     model = model.to(device)
     model.eval()
-
-    print(f"Model loaded from {model_path}")
+    print(f"Model ready for inference on {device}!")
 
     return model

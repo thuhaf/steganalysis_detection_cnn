@@ -33,3 +33,5 @@ pytest-cov
 black
 flake8
 mypy
+uvicorn
+fastapi

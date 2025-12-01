@@ -1,0 +1,120 @@
+# Default configuration for steganalysis training
+
+# Data configuration
+data:
+  # Directories
+  cover_train_dir: "data/processed/train/cover"
+  stego_train_dir: "data/processed/train/stego"
+  cover_val_dir: "data/processed/val/cover"
+  stego_val_dir: "data/processed/val/stego"
+  cover_test_dir: "data/processed/test/cover"
+  stego_test_dir: "data/processed/test/stego"
+
+  # Image settings
+  img_size: 224
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+
+  # Augmentation
+  use_augmentation: true
+  augmentation_strength: "medium"  # Options: none, light, medium, strong, auto
+
+  # Data split (if not using separate directories)
+  val_split: 0.2
+  test_split: 0.1
+  shuffle_data: true
+
+  # Class balance
+  use_balanced_sampling: false
+
+# Model configuration
+model:
+  model_name: "resnet50_steg"  # Options: resnet18/34/50/101, efficientnet_b0/b1, vgg16/19, densenet121
+  num_classes: 2
+
+  # Transfer learning
+  pretrained: true
+  freeze_backbone: false
+  freeze_epochs: 0
+
+  # Architecture
+  dropout: 0.5
+  use_attention: false
+  use_srm_filters: false
+
+# Training configuration
+training:
+  # Training duration
+  num_epochs: 50
+  max_epochs: 200
+
+  # Optimization
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  optimizer: "adam"  # Options: adam, sgd, adamw
+  momentum: 0.9
+
+  # Learning rate scheduling
+  scheduler: "cosine"  # Options: cosine, step, plateau, none
+  scheduler_patience: 5
+  scheduler_factor: 0.5
+  scheduler_step_size: 10
+  warmup_epochs: 0
+
+  # Loss function
+  loss_function: "ce"  # Options: ce, focal, weighted_ce, label_smoothing
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  label_smoothing: 0.1
+
+  # Regularization
+  early_stopping_patience: 10
+  gradient_clip_norm: 1.0
+  use_mixed_precision: true
+
+  # Advanced training
+  use_mixup: false
+  mixup_alpha: 0.2
+  use_cutmix: false
+  cutmix_alpha: 1.0
+
+# Inference configuration
+inference:
+  model_path: "checkpoints/best_model.pth"
+  batch_size: 64
+  num_workers: 4
+  use_amp: true
+  threshold: 0.5
+
+  # Test-time augmentation
+  use_tta: false
+  tta_crops: 5
+
+# Logging configuration
+logging:
+  log_dir: "./logs"
+  log_interval: 10
+
+  # Checkpointing
+  checkpoint_dir: "./checkpoints"
+  save_frequency: 5
+  save_best_only: true
+
+  # Metrics tracking
+  track_metrics:
+    - accuracy
+    - f1
+    - auc
+  primary_metric: "f1"
+
+  # Visualization
+  save_plots: true
+  plot_dir: "./plots"
+
+# Global settings
+device: "cuda"
+seed: 42
+experiment_name: "steg_baseline"
+description: "Baseline steganalysis detection experiment"
+project_root: "."

@@ -17,7 +17,7 @@ class ModelRegistry:
     _image_models = {
         'steg_cnn_base': StegCNNBase,
         'deep_steg_cnn': DeepStegCNN,
-        'lightweight_steg_cnn': LightweightStegCNN,
+        'lightweight_steg_cnn': lambda **kwargs: LightweightStegCNN(**{k: v for k, v in kwargs.items() if k != 'pretrained'}),
         'resnet18_steg': lambda **kwargs: ResNetSteg(model_name='resnet18', **kwargs),
         'resnet34_steg': lambda **kwargs: ResNetSteg(model_name='resnet34', **kwargs),
         'resnet50_steg': lambda **kwargs: ResNetSteg(model_name='resnet50', **kwargs),

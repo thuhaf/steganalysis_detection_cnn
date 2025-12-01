@@ -11,7 +11,9 @@ from sklearn.metrics import (
     f1_score, roc_auc_score, confusion_matrix,
     classification_report
 )
-
+import warnings
+from sklearn.exceptions import UndefinedMetricWarning
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 class StegValidator:
     """Validator for steganalysis models"""
@@ -72,7 +74,7 @@ class StegValidator:
 
             # Forward pass
             if self.use_amp:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast(device_type='cuda', dtype=torch.float16):
                     outputs = self.model(inputs)
                     if criterion:
                         loss = criterion(outputs, targets)
@@ -358,7 +360,8 @@ class StegValidator:
         y_pred = result['predictions']['y_pred']
         class_report = classification_report(
             y_true, y_pred,
-            target_names=['Cover', 'Stego']
+            target_names=['Cover', 'Stego'],
+            zero_division=0
         )
         # Handle both string and dict return types
         if isinstance(class_report, dict):

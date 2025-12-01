@@ -37,16 +37,19 @@ class StegTrainer:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.use_amp = use_amp and device == 'cuda'
 
-        # Mixed precision training
-        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
+        # Mixed precision training - Fixed deprecation warning
+        if self.use_amp:
+            self.scaler = torch.amp.GradScaler('cuda')
+        else:
+            self.scaler = None
 
         # Metrics tracking
         self.metrics_tracker = MetricsTracker()
         self.best_val_acc = 0.0
         self.best_val_f1 = 0.0
 
-        print(f"Training on device: {device}")
-        print(f"Mixed precision: {self.use_amp}")
+        print(f"Đang huấn luyện trên thiết bị: {device}")
+        print(f"Tính toán hỗn hợp (Mixed precision): {self.use_amp}")
 
     def train_epoch(self, epoch: int) -> Dict[str, float]:
         """Train for one epoch"""
@@ -55,7 +58,7 @@ class StegTrainer:
         loss_meter = AverageMeter()
         acc_meter = AverageMeter()
 
-        pbar = tqdm(self.train_loader, desc=f'Epoch {epoch} [Train]')
+        pbar = tqdm(self.train_loader, desc=f'Epoch {epoch} [Train]', leave=False)
 
         for batch_idx, (inputs, targets) in enumerate(pbar):
             inputs = inputs.to(self.device)
@@ -65,7 +68,8 @@ class StegTrainer:
 
             # Forward pass with mixed precision
             if self.use_amp and self.scaler is not None:
-                with torch.cuda.amp.autocast():
+                # Fixed deprecation warning
+                with torch.amp.autocast('cuda'):
                     outputs = self.model(inputs)
                     loss = self.criterion(outputs, targets)
 
@@ -119,7 +123,8 @@ class StegTrainer:
                 batch_size = inputs.size(0)
 
                 if self.use_amp:
-                    with torch.cuda.amp.autocast():
+                    # Fixed deprecation warning
+                    with torch.amp.autocast('cuda'):
                         outputs = self.model(inputs)
                         loss = self.criterion(outputs, targets)
                 else:
@@ -158,7 +163,7 @@ class StegTrainer:
         """
         Train the model for multiple epochs with early stopping and checkpointing.
         """
-        print(f"\nStarting training for {num_epochs} epochs...")
+        print(f"\nBắt đầu huấn luyện trong {num_epochs} epoch...")
         print(f"{'='*60}\n")
 
         best_val_f1 = 0.0
@@ -171,26 +176,26 @@ class StegTrainer:
             # Training epoch
             train_metrics = self.train_epoch(epoch)
 
-            # Validation epoch - FIXED: using correct method name
+            # Validation epoch
             val_metrics = self._run_validation(epoch)
 
-            # Combine metrics for logging
-            epoch_metrics = {**train_metrics, **val_metrics}
-            self.metrics_tracker.update(epoch_metrics)
-
-            # Learning rate scheduler step
+            # Learning rate scheduler step - FIXED: Move before metrics tracking
             if self.scheduler:
                 if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     self.scheduler.step(val_metrics['val_loss'])
                 else:
                     self.scheduler.step()
 
+            # Combine metrics for logging
+            epoch_metrics = {**train_metrics, **val_metrics}
+            self.metrics_tracker.update(epoch_metrics)
+
             # Logging
             epoch_time = time.time() - start_time
             print(f"\nEpoch {epoch}/{num_epochs} - Time: {epoch_time:.2f}s")
-            print(f"Train → Loss: {train_metrics['train_loss']:.4f} | Acc: {train_metrics['train_acc']:.4f}")
-            print(f"Val   → Loss: {val_metrics['val_loss']:.4f} | "
-                  f"Acc: {val_metrics['accuracy']:.4f} | "
+            print(f"Huấn luyện → Mất mát: {train_metrics['train_loss']:.4f} | Đ.chính xác: {train_metrics['train_acc']:.4f}")
+            print(f"Xác thực   → Mất mát: {val_metrics['val_loss']:.4f} | "
+                  f"Đ.chính xác: {val_metrics['accuracy']:.4f} | "
                   f"F1: {val_metrics['f1']:.4f} | "
                   f"AUC: {val_metrics.get('auc', 0.0):.4f}")
             print(f"{'='*60}\n")
@@ -201,7 +206,7 @@ class StegTrainer:
                 best_val_f1 = val_metrics['f1']
                 patience_counter = 0
                 self.save_checkpoint(epoch, epoch_metrics, is_best=True)
-                print(f"New best model saved! Val F1: {best_val_f1:.4f}")
+                print(f"Đã lưu mô hình tốt nhất mới! Val F1: {best_val_f1:.4f}")
             else:
                 patience_counter += 1
                 if not save_best_only:
@@ -209,10 +214,10 @@ class StegTrainer:
 
             # Early stopping
             if patience_counter >= early_stopping_patience:
-                print(f"Early stopping triggered after {epoch} epochs (no improvement for {early_stopping_patience} epochs)")
+                print(f"Đã kích hoạt dừng sớm sau {epoch} epoch (không cải thiện trong {early_stopping_patience} epochs)")
                 break
 
-        print(f"\nTraining completed! Best Val F1: {best_val_f1:.4f}")
+        print(f"\nHuấn luyện hoàn tất! F1 Xác thực tốt nhất: {best_val_f1:.4f}")
         return self.metrics_tracker.get_history()
 
     def save_checkpoint(
@@ -240,7 +245,7 @@ class StegTrainer:
         if is_best:
             best_path = self.save_dir / 'best_model.pth'
             torch.save(checkpoint, best_path)
-            print(f"Best model saved to {best_path}")
+            print(f"Đã lưu mô hình tốt nhất tới {best_path}")
 
     def load_checkpoint(self, checkpoint_path: str):
         """Load model checkpoint"""
@@ -252,7 +257,7 @@ class StegTrainer:
         if self.scheduler and 'scheduler_state_dict' in checkpoint:
             self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
-        print(f"Checkpoint loaded from {checkpoint_path}")
+        print(f"Đã tải checkpoint từ {checkpoint_path}")
         print(f"Epoch: {checkpoint['epoch']}")
 
         return checkpoint['epoch'], checkpoint['metrics']
